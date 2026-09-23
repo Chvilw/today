@@ -2,9 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>云下的花帘 · 凝结成雨</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 44'%3E%3Ccircle cx='23' cy='28' r='11' fill='%235b8fd9'/%3E%3Ccircle cx='37' cy='22' r='15' fill='%235b8fd9'/%3E%3Ccircle cx='50' cy='29' r='10' fill='%235b8fd9'/%3E%3Crect x='13' y='26' width='46' height='14' rx='7' fill='%235b8fd9'/%3E%3C/svg%3E">
 <style>
   html, body {
     margin: 0; padding: 0;
@@ -13,8 +13,6 @@
     background: #d6e9ff;
     font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior: none;
-    touch-action: none;
   }
   canvas {
     display: block;
@@ -23,10 +21,8 @@
     touch-action: none;
     cursor: pointer;
   }
-
-  /* ---------- 新手指引 ---------- */
   #guide {
-    position: fixed; inset: 0; z-index: 200;
+    position: fixed; inset: 0; z-index: 20;
     display: flex; align-items: center; justify-content: center;
     background: rgba(15, 35, 65, 0.32);
     backdrop-filter: blur(8px);
@@ -35,13 +31,10 @@
     transition: opacity 0.6s ease;
     cursor: pointer;
     padding: 20px;
-    /* 关键：阻止浏览器手势穿透 */
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   #guide.show { opacity: 1; pointer-events: auto; }
-
   #guide .card {
     background: rgba(255, 255, 255, 0.96);
     border-radius: 24px;
@@ -51,26 +44,18 @@
     transform: translateY(18px) scale(0.94);
     transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.25);
     max-width: 380px;
-    width: 100%;
-    box-sizing: border-box;
-    pointer-events: none;   /* 内部元素不拦截，整卡交给 #guide 处理 */
   }
   #guide.show .card { transform: translateY(0) scale(1); }
-
-  /* 云朵图标 */
   #guide .icon {
-    width: 66px; height: 50px;
+    width: 52px; height: 52px;
     margin: 0 auto 16px;
-    color: #6ea3d6;
-    display: block;
-    animation: floatY 2.2s ease-in-out infinite;
-    filter: drop-shadow(0 4px 10px rgba(110, 163, 214, 0.28));
+    color: #3b6ea5;
+    animation: floatY 1.9s ease-in-out infinite;
   }
   @keyframes floatY {
     0%, 100% { transform: translateY(-4px); }
     50%      { transform: translateY(5px); }
   }
-
   #guide h2 {
     margin: 0 0 14px;
     font-size: 19px; font-weight: 600;
@@ -110,45 +95,6 @@
     0%, 100% { opacity: 0.55; }
     50%      { opacity: 1; }
   }
-
-  /* ---------- 顶部成就弹窗 ---------- */
-  #congrats {
-    position: fixed;
-    top: 58px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-24px) scale(0.95);
-    z-index: 40;
-    display: flex; align-items: center; gap: 12px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.99), rgba(235,246,255,0.99));
-    border-radius: 22px;
-    padding: 16px 32px 16px 24px;
-    box-shadow:
-      0 22px 60px rgba(20, 50, 100, 0.30),
-      0 0 0 1px rgba(120, 160, 210, 0.16) inset,
-      0 0 40px rgba(160, 200, 245, 0.4);
-    font-size: 17px;
-    font-weight: 600;
-    color: #1f3a5f;
-    letter-spacing: 0.6px;
-    opacity: 0; pointer-events: none;
-    transition:
-      opacity 0.65s ease,
-      transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.25);
-  }
-  #congrats.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
-  }
-  #congrats .c-icon {
-    width: 34px; height: 26px;
-    color: #6ea3d6;
-    flex-shrink: 0;
-  }
-  #congrats .c-text {
-    white-space: nowrap;
-  }
-
-  /* ---------- 科普知识卡片 ---------- */
   #fact {
     position: fixed; z-index: 30;
     left: 50%; bottom: 46px;
@@ -213,49 +159,75 @@
     color: #b0c4d8;
     letter-spacing: 0.3px;
   }
+  /* ===== 成就弹窗：累计拨动 10 秒触发，顶部展示 6 秒 ===== */
+  #achievement {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-90px);
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 26px 13px 18px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(230, 244, 255, 0.98));
+    border: 1px solid rgba(130, 170, 215, 0.35);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(25, 60, 110, 0.30);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    white-space: nowrap;
+  }
+  #achievement.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  #achievement .ach-icon {
+    width: 38px;
+    height: 38px;
+    color: #3b6ea5;
+    flex: 0 0 auto;
+    filter: drop-shadow(0 3px 8px rgba(90, 140, 200, 0.35));
+  }
+  #achievement .ach-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f3a5f;
+    letter-spacing: 0.8px;
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
 </head>
 <body>
-
-<!-- 新手指引 -->
-<div id="guide">
+<div id="guide" onclick="dismissGuide(event)" ontouchstart="dismissGuide(event)">
   <div class="card">
-    <svg class="icon" viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="18" cy="30" r="12" fill="currentColor"/>
-      <circle cx="32" cy="22" r="14" fill="currentColor"/>
-      <circle cx="46" cy="30" r="12" fill="currentColor"/>
-      <rect x="18" y="30" width="28" height="12" fill="currentColor"/>
+    <svg class="icon" viewBox="0 0 64 44" fill="currentColor" aria-hidden="true">
+      <circle cx="23" cy="28" r="11"/>
+      <circle cx="37" cy="22" r="15"/>
+      <circle cx="50" cy="29" r="10"/>
+      <rect x="13" y="26" width="46" height="14" rx="7"/>
     </svg>
     <h2>欢迎来到云下花帘</h2>
     <div class="row">
       <span class="dot">1</span>
-      <span class="txt">触摸滑动 · 推动花帘<br><em>花在碰撞中会逐渐凝结成水珠，滴落消失，云朵自动补充</em></span>
+      <span class="txt">触摸 · 推动花帘<br><em>花在碰撞中会逐渐凝结成水珠，滴落消失，云朵自动补充</em></span>
     </div>
     <div class="row">
       <span class="dot">2</span>
-      <span class="txt">点击花朵 · 认识一朵云<br><em>点击空白处可收起知识卡片</em></span>
+      <span class="txt">拨动花帘 · 积攒水滴<br><em>累计拨动满 10 秒，云朵会送上一份惊喜</em></span>
     </div>
     <div class="row">
       <span class="dot">3</span>
+      <span class="txt">点击花朵 · 认识一朵云<br><em>点击空白处可收起知识卡片</em></span>
+    </div>
+    <div class="row">
+      <span class="dot">4</span>
       <span class="txt">长按花朵下拉 · 切换昼夜</span>
     </div>
-    <p class="start">轻触任意处开始</p>
+    <p class="start">点击任意处开始</p>
   </div>
 </div>
-
-<!-- 顶部成就弹窗 -->
-<div id="congrats">
-  <svg class="c-icon" viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="18" cy="30" r="12" fill="currentColor"/>
-    <circle cx="32" cy="22" r="14" fill="currentColor"/>
-    <circle cx="46" cy="30" r="12" fill="currentColor"/>
-    <rect x="18" y="30" width="28" height="12" fill="currentColor"/>
-  </svg>
-  <span class="c-text">恭喜你，了解一朵云</span>
-</div>
-
-<!-- 科普知识卡片 -->
 <div id="fact">
   <span class="tag" id="factTag">世界气象组织</span>
   <h3 id="factTitle"></h3>
@@ -263,13 +235,20 @@
   <span class="src" id="factSrc"></span>
   <span class="close-hint">点击空白处可收起 · 7 秒后自动消失</span>
 </div>
-
+<div id="achievement">
+  <svg class="ach-icon" viewBox="0 0 64 44" fill="currentColor" aria-hidden="true">
+    <circle cx="23" cy="28" r="11"/>
+    <circle cx="37" cy="22" r="15"/>
+    <circle cx="50" cy="29" r="10"/>
+    <rect x="13" y="26" width="46" height="14" rx="7"/>
+  </svg>
+  <span class="ach-text">恭喜你，了解一朵云</span>
+</div>
 <script>
 /* ============================================================
-   新手指引 —— 事件绑定在 DOM 层，完全绕开 p5
+   新手指引
    ============================================================ */
-const GUIDE_KEY = 'flowerCurtain_guide_v7';
-
+const GUIDE_KEY = 'flowerCurtain_guide_v8';
 function hasSeenGuide() {
   try { return localStorage.getItem(GUIDE_KEY) === '1'; }
   catch (e) { return false; }
@@ -277,45 +256,32 @@ function hasSeenGuide() {
 function markGuideSeen() {
   try { localStorage.setItem(GUIDE_KEY, '1'); } catch (e) {}
 }
+function dismissGuide(e) {
+  // 移动端：p5 会在 document 层拦截触摸事件，导致合成的 click 不触发，
+  // 因此触摸时直接在此处关闭，并阻断事件继续冒泡（避免 p5 干扰）。
+  const el = document.getElementById('guide');
+  if (el) el.classList.remove('show');
+  markGuideSeen();
+  if (e) {
+    if (e.stopPropagation) e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+  }
+}
 window.resetGuide = function () {
   try { localStorage.removeItem(GUIDE_KEY); } catch (e) {}
   location.reload();
 };
-
-const guideEl = document.getElementById('guide');
-
-/* 关闭指引 —— 同时记录时间戳，短暂屏蔽 canvas 手势 */
-let guideCloseTime = 0;
-function dismissGuide() {
-  if (!guideEl.classList.contains('show')) return;
-  guideEl.classList.remove('show');
-  markGuideSeen();
-  guideCloseTime = Date.now();
+/* ============================================================
+   成就弹窗：累计拨动满 10 秒 → 顶部展示 6 秒（每次会话一次）
+   ============================================================ */
+function showAchievement() {
+  achievementShown = true;
+  const el = document.getElementById('achievement');
+  if (!el) return;
+  el.classList.add('show');
+  clearTimeout(achievementTimer);
+  achievementTimer = setTimeout(() => el.classList.remove('show'), 6000);
 }
-
-/* 用 pointerdown 统一处理鼠标 / 触屏 / 触控笔
-   - passive: false  让 preventDefault 生效
-   - stopPropagation 阻止 p5 的 window 监听抢到事件
-   - 兼容旧浏览器的 touchstart 兜底 */
-function onGuideDown(e) {
-  if (e) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-  dismissGuide();
-}
-guideEl.addEventListener('pointerdown', onGuideDown, { passive: false });
-/* 兜底：某些旧 Android 不支持 pointerdown */
-guideEl.addEventListener('touchstart', onGuideDown, { passive: false });
-guideEl.addEventListener('mousedown',  onGuideDown);
-
-/* 首次打开 → 显示指引 */
-function maybeShowGuide() {
-  if (!hasSeenGuide()) {
-    setTimeout(() => guideEl.classList.add('show'), 700);
-  }
-}
-
 /* ============================================================
    云科普知识库
    ============================================================ */
@@ -348,28 +314,23 @@ const CLOUD_FACTS = [
   { tag: '中国气象局', title: '卷层云（Cirrostratus）· 一层高高的乳白色云纱', body: '卷层云是指白色透明的云幔，有丝缕状结构或呈均匀薄幕状，可以部分或全部遮蔽天穹，常伴有晕（日晕或月晕）。卷层云范围大，可达几百到几千公里。云底高度约 5000 米以上，属高云族。', src: '来源：中国天气网《卷层云》专题' },
   { tag: '中国气象局', title: '卷积云（Cirrocumulus）· 俗称“鱼鳞云”', body: '卷积云是 10 种云属中最难捕捉到踪影的一种云。它形成在约 5000-14000 米的高空，云块看起来极其微小，仿佛小盐粒，排列整齐而又紧密，好似鱼鳞，俗称“鱼鳞云”。卷积云形成后只能维持几分钟到一个多小时。', src: '来源：中国天气网《卷积云》专题' },
 ];
-
 /* ============================================================
    知识卡片
    ============================================================ */
 let factIndex = -1, factTimer = null, factVisible = false;
-
 function showRandomFact() {
   let i;
   do { i = Math.floor(Math.random() * CLOUD_FACTS.length); }
   while (i === factIndex && CLOUD_FACTS.length > 1);
   factIndex = i;
-
   const f = CLOUD_FACTS[i];
   const card = document.getElementById('fact');
   const tag  = document.getElementById('factTag');
-
   tag.textContent = f.tag;
   tag.className = f.tag === '中国气象局' ? 'tag local' : 'tag';
   document.getElementById('factTitle').textContent = f.title;
   document.getElementById('factBody').textContent  = f.body;
   document.getElementById('factSrc').textContent   = f.src;
-
   card.classList.add('show');
   factVisible = true;
   clearTimeout(factTimer);
@@ -387,119 +348,81 @@ function isOverFactCard() {
   return mouseX >= r.left && mouseX <= r.right &&
          mouseY >= r.top  && mouseY <= r.bottom;
 }
-
-/* ============================================================
-   顶部成就弹窗 · 累计拨动 10 秒触发，持续 6 秒
-   ============================================================ */
-let stirringTime   = 0;
-let congratsShown  = false;
-let congratsTimer  = null;
-const STIR_THRESHOLD = 10;
-const CONGRATS_DURATION = 6000;
-
-function showCongrats() {
-  const el = document.getElementById('congrats');
-  if (!el) return;
-  el.classList.add('show');
-  clearTimeout(congratsTimer);
-  congratsTimer = setTimeout(() => el.classList.remove('show'), CONGRATS_DURATION);
-}
-
-function checkStirring() {
-  if (congratsShown) return;
-  if (mouseX <= 0 || mouseX >= width || mouseY <= 0 || mouseY >= height) return;
-  if (mouseY < cloudY + 80) return;
-
-  let stirring = false;
-  const R2 = PHYS.mouseRadius * PHYS.mouseRadius;
-  for (const f of flowers) {
-    if (f.state !== 'swinging') continue;
-    const tip = f.nodes[f.nodes.length - 1];
-    const dx = tip.x - mouseX;
-    const dy = tip.y - mouseY;
-    if (dx * dx + dy * dy < R2) { stirring = true; break; }
-  }
-
-  if (stirring) {
-    stirringTime += deltaTime / 1000;
-    if (stirringTime >= STIR_THRESHOLD) {
-      congratsShown = true;
-      showCongrats();
-    }
-  }
-}
-
 /* ============================================================
    物理参数
    ============================================================ */
 const PHYS = {
-  force:           20,
+  force:           24,        // 20 → 24：重力感更强（引擎加速）
   mass:            1.0,
   pixelsPerMeter:  60,
   fps:             60,
-
   damping:         0.986,
-  windStrength:    0.11,
-  mouseRadius:     110,
-  mouseForce:      0.95,
+  windStrength:    0.20,      // 0.11 → 0.20：摆动更活泼
+  mouseRadius:     120,       // 110 → 120：触屏更容易带动花帘
+  mouseForce:      1.05,      // 0.95 → 1.05：触屏推动更有力
   collisionRadius: 7,
   collisionPush:   0.35,
-  fallAccel:       0.85,
-
-  ropeIterations:  8,
-  ropeStiffness:   0.98,
+  fallAccel:       1.15,      // 0.85 → 1.15：花朵下落更快
+  // 绳子
+  ropeIterations:  8,         // 单花内部松弛次数（保留）
+  ropeOuterIterations: 2,     // 外部迭代 8 → 2：整体计算量降至约 1/4（引擎加速）
+  ropeStiffness:   0.99,      // 0.98 → 0.99：补偿外部迭代减少后的刚度
   ropeDamping:     0.985,
-
-  moisturePerHit:  0.028,
-  moistureDecay:   0.0022,
-  dropletAccel:    0.68,
-  dropletDrag:     0.992,
+  // 凝结
+  moisturePerHit:  0.05,      // 0.028 → 0.05：碰撞频次下降后保持凝结节奏
+  moistureDecay:   0.0022,    // 未受扰时的自然蒸发
+  dropletAccel:    0.85,      // 0.68 → 0.85：水滴下落更快
+  dropletDrag:     0.992,     // 水滴空气阻力
 };
 PHYS.gravity = (PHYS.force / PHYS.mass) * PHYS.pixelsPerMeter / (PHYS.fps * PHYS.fps);
-
 const CLOUD_OFFSET_CM = 10;
 const CM_TO_PX = PHYS.pixelsPerMeter / 100;
-
 /* ============================================================
    全局状态
    ============================================================ */
 let flowers = [];
 let stars = [];
 let waterColor;
-
 let cloudY = 0;
 let cloudScale = 1;
-
 let nightAmount = 0, nightTarget = 0;
-
 let dragTarget = null, dragStartY = 0, isDragging = false;
 const DRAG_THRESHOLD = 50;
-
 let stemGradient = null;
 const grid = new Map();
 const CELL_SIZE = 14;
-
+/* 成就：累计拨动计时 */
+let stirAccumMs = 0;
+let achievementShown = false;
+let achievementTimer = null;
 /* ============================================================
    初始化
    ============================================================ */
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
+  // 手机端（窄屏）降低像素密度，保证触屏交互流畅
+  pixelDensity(Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.5 : 2));
   waterColor = color(150, 205, 245);
   rebuild();
-  maybeShowGuide();
+  if (!hasSeenGuide()) {
+    setTimeout(() => {
+      const el = document.getElementById('guide');
+      if (el) el.classList.add('show');
+    }, 700);
+  }
 }
-
 function rebuild() {
   cloudY = height * 0.13 + CLOUD_OFFSET_CM * CM_TO_PX;
   cloudScale = constrain(width / 800, 0.7, 1.6);
   stemGradient = null;
-
   flowers = [];
-  const count = constrain(Math.floor(width * height / 2200), 250, 600);
+  const count = constrain(
+    Math.floor(width * height / 2200),
+    window.innerWidth < 768 ? 180 : 250,
+    600
+  );
   const anchorRange = 140 * cloudScale;
   const anchorY = cloudY + 50 * cloudScale;
-
   for (let i = 0; i < count; i++) {
     const ax = width / 2 + random(-anchorRange, anchorRange);
     const ay = anchorY + random(-6, 6) * cloudScale;
@@ -507,7 +430,6 @@ function rebuild() {
     const delay = random(0, 1700);
     flowers.push(new Flower(ax, ay, len, delay));
   }
-
   stars = [];
   const starCount = constrain(Math.floor(width * height / 9000), 90, 260);
   for (let i = 0; i < starCount; i++) {
@@ -518,41 +440,60 @@ function rebuild() {
     });
   }
 }
-
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   rebuild();
 }
-
 /* ============================================================
    主循环
    ============================================================ */
 function draw() {
   nightAmount = lerp(nightAmount, nightTarget, 0.045);
-
   background(
     lerp(135, 35, nightAmount),
     lerp(206, 55, nightAmount),
     lerp(235, 100, nightAmount)
   );
-
   drawStars();
   drawCloudGlow();
-
+  /* ============================================================
+     成就检测：累计拨动花帘满 10 秒 → 顶部弹窗 6 秒
+     （新手指引显示期间不计时，每次会话只触发一次）
+     ============================================================ */
+  if (!achievementShown) {
+    const guideOpen = document.getElementById('guide').classList.contains('show');
+    if (!guideOpen) {
+      let stirring = isDragging;
+      if (!stirring) {
+        const R = PHYS.mouseRadius;
+        outer:
+        for (const f of flowers) {
+          if (f.state !== 'swinging') continue;
+          for (const n of f.nodes) {
+            const dx = n.x - mouseX;
+            const dy = n.y - mouseY;
+            if (dx * dx + dy * dy < R * R) { stirring = true; break outer; }
+          }
+        }
+      }
+      if (stirring) {
+        stirAccumMs += deltaTime;
+        if (stirAccumMs >= 10000) showAchievement();
+      }
+    }
+  }
+  // 1. 更新所有花朵（含水滴）
   for (const f of flowers) f.update();
-
-  for (let i = 0; i < PHYS.ropeIterations; i++) {
+  // 2. 绳约束与碰撞迭代（外部迭代 8 → 2，内部已含 8 次松弛，物理仍稳定）
+  for (let i = 0; i < PHYS.ropeOuterIterations; i++) {
     for (const f of flowers) f.solveRope();
     resolveCollisions();
   }
-
+  // 3. 绘制
   drawStems();
   drawFlowers();
   drawCloud(width / 2, cloudY);
-
-  checkStirring();
 }
-
 /* ============================================================
    星星 / 柔光
    ============================================================ */
@@ -566,13 +507,11 @@ function drawStars() {
     ellipse(s.x, s.y, s.size, s.size);
   }
 }
-
 function drawCloudGlow() {
   if (nightAmount < 0.02) return;
   const x = width / 2, y = cloudY;
   const r = Math.max(width * 0.36, 380 * cloudScale);
   const ctx = drawingContext;
-
   const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
   grad.addColorStop(0.00, `rgba(180, 210, 255, ${0.38 * nightAmount})`);
   grad.addColorStop(0.45, `rgba(150, 185, 245, ${0.16 * nightAmount})`);
@@ -580,7 +519,6 @@ function drawCloudGlow() {
   ctx.fillStyle = grad;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
 }
-
 /* ============================================================
    绳子
    ============================================================ */
@@ -594,7 +532,6 @@ function createStemGradient() {
   g.addColorStop(1.00, 'rgba(255, 255, 255, 0.55)');
   return g;
 }
-
 function drawStems() {
   if (!stemGradient) stemGradient = createStemGradient();
   const ctx = drawingContext;
@@ -615,42 +552,41 @@ function drawStems() {
   ctx.stroke();
   ctx.restore();
 }
-
 /* ============================================================
-   花朵 + 水滴
+   花朵 + 水滴绘制
    ============================================================ */
 function drawFlowers() {
   const ctx = drawingContext;
   noStroke();
-
   for (const f of flowers) {
     if (f.state === 'waiting') continue;
-
+    /* ---------- 水滴 ---------- */
     if (f.state === 'droplet') {
       drawDroplet(f);
       continue;
     }
-
+    /* ---------- 花朵（湿度渐变） ---------- */
     const tip = f.nodes[f.nodes.length - 1];
     const wetColor = lerpColor(f.baseColor, waterColor, f.moisture);
-
+    // 发光
     if (f === dragTarget && isDragging) {
       ctx.shadowBlur = 22;
       ctx.shadowColor = 'rgba(255, 245, 200, 1)';
     } else if (f.moisture > 0.55) {
+      // 湿度越高，蓝光越亮
       const pulse = f.moisture > 0.85
-        ? 0.5 + 0.5 * Math.sin(frameCount * 0.7)
+        ? 0.5 + 0.5 * Math.sin(frameCount * 0.7)   // 临界闪烁
         : 1.0;
       ctx.shadowBlur = 14 * pulse;
       ctx.shadowColor = `rgba(160, 210, 255, ${0.75 * pulse})`;
     } else {
       ctx.shadowBlur = 0;
     }
-
+    // 尺寸随湿度膨胀
     const wetSize = f.displaySize * (1 + f.moisture * 0.5);
     fill(wetColor);
     ellipse(tip.x, tip.y, wetSize, wetSize);
-
+    // 湿度较高的花朵加一个高光点
     if (f.moisture > 0.4) {
       ctx.shadowBlur = 0;
       fill(255, 255, 255, 90 * f.moisture);
@@ -661,39 +597,34 @@ function drawFlowers() {
   }
   ctx.shadowBlur = 0;
 }
-
 function drawDroplet(f) {
   const ctx = drawingContext;
   noStroke();
-
+  // 拉长：下坠越快越细长
   const speed = Math.abs(f.dropletVY) + Math.abs(f.dropletVX) * 0.5;
   const stretch = constrain(speed * 0.045, 0, 0.55);
   const base = f.size * 3.0;
   const w = base * (1 - stretch * 0.35);
   const h = base * (1 + stretch);
-
+  // 水滴外发光
   ctx.shadowBlur = 18;
   ctx.shadowColor = 'rgba(160, 210, 255, 0.85)';
-
   fill(170, 215, 245, 235);
   ellipse(f.dx, f.dy, w, h);
-
+  // 高光
   ctx.shadowBlur = 0;
   fill(255, 255, 255, 200);
   ellipse(f.dx - w * 0.18, f.dy - h * 0.22, w * 0.28, h * 0.24);
 }
-
 /* ============================================================
    云朵
    ============================================================ */
 function drawCloud(x, y) {
   noStroke();
   const s = cloudScale;
-
   const r = lerp(255, 218, nightAmount);
   const g = lerp(255, 232, nightAmount);
   const b = lerp(255, 255, nightAmount);
-
   const ctx = drawingContext;
   if (nightAmount > 0.02) {
     ctx.shadowBlur = 45 * nightAmount;
@@ -701,37 +632,35 @@ function drawCloud(x, y) {
   } else {
     ctx.shadowBlur = 0;
   }
-
   fill(r, g, b, 55);
   ellipse(x,             y + 25 * s, 470 * s, 180 * s);
   ellipse(x - 170 * s,   y + 20 * s, 268 * s, 158 * s);
   ellipse(x + 170 * s,   y + 20 * s, 268 * s, 158 * s);
   ellipse(x - 82  * s,   y - 28 * s, 248 * s, 170 * s);
   ellipse(x + 82  * s,   y - 28 * s, 248 * s, 170 * s);
-
   fill(r, g, b, 150);
   ellipse(x,             y + 25 * s, 418 * s, 152 * s);
   ellipse(x - 153 * s,   y + 20 * s, 236 * s, 137 * s);
   ellipse(x + 153 * s,   y + 20 * s, 236 * s, 137 * s);
   ellipse(x - 75  * s,   y - 26 * s, 216 * s, 148 * s);
   ellipse(x + 75  * s,   y - 26 * s, 216 * s, 148 * s);
-
   fill(r, g, b, 248);
   ellipse(x,             y + 25 * s, 380 * s, 130 * s);
   ellipse(x - 145 * s,   y + 20 * s, 210 * s, 120 * s);
   ellipse(x + 145 * s,   y + 20 * s, 210 * s, 120 * s);
   ellipse(x - 70  * s,   y - 25 * s, 190 * s, 130 * s);
   ellipse(x + 70  * s,   y - 25 * s, 190 * s, 130 * s);
-
   ctx.shadowBlur = 0;
 }
-
 /* ============================================================
-   碰撞 + 湿度累积
+   碰撞求解 + 湿度累积
+   ──────────────────────────────────────────────────────────
+   碰撞时：
+     1. 位置分离（原有逻辑）
+     2. 按重叠深度累积湿度 → 慢速凝结成水
    ============================================================ */
 function resolveCollisions() {
   grid.clear();
-
   for (const f of flowers) {
     if (f.state !== 'swinging') continue;
     const tip = f.nodes[f.nodes.length - 1];
@@ -743,16 +672,13 @@ function resolveCollisions() {
     if (!bucket) { bucket = []; grid.set(key, bucket); }
     bucket.push(f);
   }
-
   const r = PHYS.collisionRadius;
   const r2 = r * r;
   const k = PHYS.collisionPush * 0.5;
-
   for (const f of flowers) {
     if (f.state !== 'swinging') continue;
     const fTip = f.nodes[f.nodes.length - 1];
     const fDragged = (f === dragTarget && isDragging);
-
     for (let ox = -1; ox <= 1; ox++) {
       for (let oy = -1; oy <= 1; oy++) {
         const bucket = grid.get((f.cx + ox) * 10000 + (f.cy + oy));
@@ -763,16 +689,16 @@ function resolveCollisions() {
           const dx = gTip.x - fTip.x;
           const dy = gTip.y - fTip.y;
           const d2 = dx * dx + dy * dy;
-
           if (d2 < r2 && d2 > 0.0001) {
             const d = Math.sqrt(d2);
             const overlap = (r - d) / r;
+            // 位置分离
             const corr = (overlap / d) * k * r;
             const px = dx * corr;
             const py = dy * corr;
             fTip.x -= px; fTip.y -= py;
             gTip.x += px; gTip.y += py;
-
+            // 湿度累积 —— 拖动中的花朵不参与凝结（保护拖动交互）
             const gDragged = (g === dragTarget && isDragging);
             const amount = overlap * PHYS.moisturePerHit;
             if (!fDragged) f.moisture += amount;
@@ -783,33 +709,16 @@ function resolveCollisions() {
     }
   }
 }
-
 /* ============================================================
-   交互 —— 手机优先
-   ──────────────────────────────────────────────────────────
-   关键修复：
-     1. 所有 canvas 事件首先检查"指引是否开着"
-     2. 若指引开着 / 刚关闭 → 直接 return false，避免误触发
-     3. 指引的关闭由 DOM 层的 pointerdown 独立处理
+   交互
    ============================================================ */
 let pressTarget = null, pressStartX = 0, pressStartY = 0, pressMoved = false;
-
-function isGuideOpen() {
-  return guideEl.classList.contains('show');
-}
-function isGuideJustClosed() {
-  return Date.now() - guideCloseTime < 350;
-}
-
 function resetGestures() {
   dragTarget = null; pressTarget = null;
   isDragging = false; pressMoved = false;
 }
-
 function mousePressed() {
-  if (isGuideOpen() || isGuideJustClosed()) { resetGestures(); return; }
   if (isOverFactCard()) { resetGestures(); return; }
-
   let best = null, bestD = 40;
   for (const f of flowers) {
     if (f.state !== 'swinging') continue;
@@ -818,7 +727,6 @@ function mousePressed() {
     const d = dist(mouseX, mouseY, tip.x, tip.y);
     if (d < bestD) { bestD = d; best = f; }
   }
-
   pressTarget = best;
   pressStartX = mouseX; pressStartY = mouseY;
   pressMoved = false;
@@ -826,35 +734,26 @@ function mousePressed() {
   dragStartY = mouseY;
   isDragging = false;
 }
-
 function mouseDragged() {
-  if (isGuideOpen() || isGuideJustClosed()) return;
   if (!pressTarget) return;
-
   const moved = Math.hypot(mouseX - pressStartX, mouseY - pressStartY);
   if (moved > 8) pressMoved = true;
-
   const dy = mouseY - dragStartY;
   if (!isDragging && pressMoved && dy > DRAG_THRESHOLD) {
     isDragging = true;
   }
-
   if (isDragging && dragTarget) {
     const tip = dragTarget.nodes[dragTarget.nodes.length - 1];
     tip.x = constrain(mouseX, 10, width - 10);
     tip.y = constrain(mouseY, 10, height - 10);
     tip.px = tip.x; tip.py = tip.y;
-
     const dx = tip.x - dragTarget.ax;
     const dyy = tip.y - dragTarget.ay;
     dragTarget.currentLen = Math.sqrt(dx * dx + dyy * dyy);
   }
 }
-
 function mouseReleased() {
-  if (isGuideOpen() || isGuideJustClosed()) { resetGestures(); return; }
   if (isOverFactCard()) { resetGestures(); return; }
-
   if (isDragging && dragTarget) {
     nightTarget = nightTarget > 0.5 ? 0 : 1;
   } else if (pressTarget && !pressMoved) {
@@ -864,26 +763,18 @@ function mouseReleased() {
   }
   resetGestures();
 }
-
-/* p5 事件 —— 全部先判断指引状态，避免吞掉 DOM 事件 */
-function touchStarted() {
-  if (isGuideOpen() || isGuideJustClosed()) return false;
-  mousePressed();
-  return false;
-}
-function touchMoved() {
-  if (isGuideOpen() || isGuideJustClosed()) return false;
-  mouseDragged();
-  return false;
-}
-function touchEnded() {
-  if (isGuideOpen() || isGuideJustClosed()) return false;
-  mouseReleased();
-  return false;
-}
-
+function touchStarted() { mousePressed();  return false; }
+function touchMoved()   { mouseDragged();  return false; }
+function touchEnded()   { mouseReleased(); return false; }
 /* ============================================================
    花朵 · 真实绳索 + 凝结成水 + 云朵补充
+   ──────────────────────────────────────────────────────────
+   状态机：
+     waiting  → 等待从云里落下
+     falling  → 从云里下落
+     swinging → 正常摆动（可累积湿度）
+     droplet  → 水滴下落
+     （到达屏底后回到 waiting，云自动补充）
    ============================================================ */
 class Flower {
   constructor(ax, ay, len, delay) {
@@ -892,32 +783,27 @@ class Flower {
     this.startAt = delay;
     this.fallDist = 0;
     this.fallSpeed = 0;
-
     this.size = random(4, 9);
     this.displaySize = this.size;
-
     this.baseColor = this.pickColor();
     this.moisture = 0;
     this.windPhase = random(TWO_PI);
     this.cx = 0; this.cy = 0;
-
+    // 水滴状态专用
     this.dx = 0; this.dy = 0;
     this.dropletVX = 0;
     this.dropletVY = 0;
   }
-
   initPosition(ax, ay, len) {
     this.ax = ax; this.ay = ay;
     this.targetLen = len;
     this.currentLen = len;
     this.nSeg = constrain(Math.round(len / 110), 3, 7);
-
     this.nodes = [];
     for (let i = 0; i <= this.nSeg; i++) {
       this.nodes.push({ x: ax, y: ay, px: ax, py: ay });
     }
   }
-
   pickColor() {
     const palette = [
       [255, 182, 193],
@@ -933,43 +819,48 @@ class Flower {
       constrain(c[2] + random(-10, 10), 0, 255)
     );
   }
-
   update() {
     const beingDragged = (this === dragTarget && isDragging);
-
+    /* ============================================================
+       状态 4：水滴下落
+       ============================================================ */
     if (this.state === 'droplet') {
+      // 重力 + 空气阻力
       this.dropletVY += PHYS.dropletAccel;
       this.dropletVX *= PHYS.dropletDrag;
       this.dropletVY *= PHYS.dropletDrag;
-
       this.dx += this.dropletVX;
       this.dy += this.dropletVY;
-
+      // 出屏（底部或左右）→ 云朵补充新花
       if (this.dy > height + 80 ||
           this.dx < -100 || this.dx > width + 100) {
         this.respawn();
       }
       return;
     }
-
+    /* ============================================================
+       湿度自然衰减（未被扰动的花会慢慢变干）
+       ============================================================ */
     if (this.state === 'swinging' && !beingDragged) {
       this.moisture = Math.max(0, this.moisture - PHYS.moistureDecay);
     }
-
+    /* ============================================================
+       临界：湿度满 → 凝结成水滴
+       ============================================================ */
     if (this.state === 'swinging' && this.moisture >= 1 && !beingDragged) {
       this.becomeDroplet();
       return;
     }
-
+    /* ============================================================
+       正常状态：绳索物理
+       ============================================================ */
     const tip = this.nodes[this.nodes.length - 1];
-
     if (!beingDragged) {
       this.currentLen = lerp(this.currentLen, this.targetLen, 0.08);
     }
-
     const targetSize = beingDragged ? this.size * 2.4 : this.size;
     this.displaySize = lerp(this.displaySize, targetSize, 0.18);
-
+    /* ---------- waiting ---------- */
     if (this.state === 'waiting') {
       if (millis() < this.startAt) return;
       this.state = 'falling';
@@ -977,17 +868,15 @@ class Flower {
       this.fallSpeed = 0;
       return;
     }
-
+    /* ---------- falling ---------- */
     if (this.state === 'falling') {
       this.fallSpeed += PHYS.fallAccel;
       this.fallDist += this.fallSpeed;
-
       if (this.fallDist >= this.targetLen) {
         this.fallDist = this.targetLen;
         this.state = 'swinging';
         this.currentLen = this.targetLen;
       }
-
       const segLen = this.fallDist / this.nSeg;
       for (let i = 0; i <= this.nSeg; i++) {
         const n = this.nodes[i];
@@ -996,132 +885,119 @@ class Flower {
         n.px = n.x;
         n.py = n.y - this.fallSpeed * 0.5;
       }
-
       if (this.state === 'swinging') {
         tip.py -= this.fallSpeed * 0.75;
       }
       return;
     }
-
+    /* ---------- swinging ---------- */
     if (beingDragged) {
       tip.x = constrain(mouseX, 10, width - 10);
       tip.y = constrain(mouseY, 10, height - 10);
       tip.px = tip.x; tip.py = tip.y;
     }
-
     for (let i = 1; i < this.nodes.length; i++) {
       if (beingDragged && i === this.nodes.length - 1) continue;
       this.integrateNode(this.nodes[i]);
     }
   }
-
+  /* ---------- Verlet 积分 ---------- */
   integrateNode(n) {
     const vx = (n.x - n.px) * PHYS.ropeDamping;
     const vy = (n.y - n.py) * PHYS.ropeDamping;
-
     let ax = 0;
     let ay = PHYS.gravity;
-
     const t = frameCount * 0.015;
     const wind = (
       Math.sin(t + this.windPhase) * 0.7 +
       Math.sin(t * 1.9 + this.windPhase * 2.1) * 0.3
     ) * PHYS.windStrength;
     ax += wind;
-
     const dx = n.x - mouseX;
     const dy = n.y - mouseY;
     const d2 = dx * dx + dy * dy;
     const R = PHYS.mouseRadius;
-
     if (d2 < R * R && d2 > 1) {
       const d = Math.sqrt(d2);
       const f = (1 - d / R) * PHYS.mouseForce * 0.55;
       ax += (dx / d) * f;
       ay += (dy / d) * f;
     }
-
     n.px = n.x;
     n.py = n.y;
     n.x += vx + ax;
     n.y += vy + ay;
   }
-
+  /* ---------- 绳约束 ---------- */
   solveRope() {
     if (this.state !== 'swinging' && this.state !== 'falling') return;
-
     const nodes = this.nodes;
     const nSeg = this.nSeg;
     const segLen = this.currentLen / nSeg;
     const tipDragged = (this === dragTarget && isDragging);
     const k = PHYS.ropeStiffness;
-
     for (let iter = 0; iter < PHYS.ropeIterations; iter++) {
       nodes[0].x = this.ax;
       nodes[0].y = this.ay;
-
       if (tipDragged) {
         const tip = nodes[nSeg];
         tip.x = constrain(mouseX, 10, width - 10);
         tip.y = constrain(mouseY, 10, height - 10);
       }
-
       for (let i = 0; i < nSeg; i++) {
         const a = nodes[i];
         const b = nodes[i + 1];
-
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
-
         const wA = (i === 0) ? 0 : 1;
         const wB = (i === nSeg - 1 && tipDragged) ? 0 : 1;
         const wSum = wA + wB;
         if (wSum === 0) continue;
-
         const corr = ((d - segLen) / d) * k;
         const kA = corr * (wA / wSum);
         const kB = corr * (wB / wSum);
-
         a.x += dx * kA; a.y += dy * kA;
         b.x -= dx * kB; b.y -= dy * kB;
       }
     }
   }
-
+  /* ============================================================
+     凝结成水滴
+     - 从花尖位置开始，继承一部分速度
+     - 断开绳子（state 变为 droplet 后不再参与绳索物理）
+     ============================================================ */
   becomeDroplet() {
     const tip = this.nodes[this.nodes.length - 1];
     this.state = 'droplet';
-
     this.dx = tip.x;
     this.dy = tip.y;
-
+    // 继承尖端速度 + 一点随机扰动
     const vx = (tip.x - tip.px);
     const vy = (tip.y - tip.py);
     this.dropletVX = vx * 1.2 + random(-0.4, 0.4);
     this.dropletVY = Math.max(vy, 0) + 0.8 + random(0, 0.6);
-
+    // 如果它正在被拖动，解除拖动绑定
     if (dragTarget === this) {
       dragTarget = null;
       isDragging = false;
     }
-
+    // 水滴比花朵大
     this.size = random(5, 8);
   }
-
+  /* ============================================================
+     云朵自动补充 —— 重置为全新的一朵花
+     ============================================================ */
   respawn() {
     const anchorRange = 140 * cloudScale;
     const ax = width / 2 + random(-anchorRange, anchorRange);
     const ay = cloudY + 50 * cloudScale + random(-6, 6);
     const len = random(60, height * 0.7);
-
     this.initPosition(ax, ay, len);
-
     this.state = 'waiting';
-    this.startAt = millis() + random(300, 1200);
+    this.startAt = millis() + random(300, 1200);   // 错峰补充
     this.fallDist = 0;
     this.fallSpeed = 0;
-
     this.moisture = 0;
     this.size = random(4, 9);
     this.displaySize = this.size;
@@ -1132,3 +1008,4 @@ class Flower {
 </script>
 </body>
 </html>
+<!-- （注：内容由AI生成） -->
