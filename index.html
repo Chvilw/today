@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>云下的花帘 · 凝结成雨</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #d6e9ff;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+  canvas {
+    display: block;
+    position: fixed;
+    top: 0; left: 0;
+    touch-action: none;
+    cursor: pointer;
+  }
+
+  /* ---------- 新手指引 ---------- */
+  #guide {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(15, 35, 65, 0.32);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.6s ease;
+    cursor: pointer;
+    padding: 20px;
+    /* 关键：阻止浏览器手势穿透 */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #guide.show { opacity: 1; pointer-events: auto; }
+
+  #guide .card {
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 24px;
+    padding: 36px 40px 32px;
+    text-align: center;
+    box-shadow: 0 24px 70px rgba(20, 50, 100, 0.32);
+    transform: translateY(18px) scale(0.94);
+    transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+    max-width: 380px;
+    width: 100%;
+    box-sizing: border-box;
+    pointer-events: none;   /* 内部元素不拦截，整卡交给 #guide 处理 */
+  }
+  #guide.show .card { transform: translateY(0) scale(1); }
+
+  /* 云朵图标 */
+  #guide .icon {
+    width: 66px; height: 50px;
+    margin: 0 auto 16px;
+    color: #6ea3d6;
+    display: block;
+    animation: floatY 2.2s ease-in-out infinite;
+    filter: drop-shadow(0 4px 10px rgba(110, 163, 214, 0.28));
+  }
+  @keyframes floatY {
+    0%, 100% { transform: translateY(-4px); }
+    50%      { transform: translateY(5px); }
+  }
+
+  #guide h2 {
+    margin: 0 0 14px;
+    font-size: 19px; font-weight: 600;
+    letter-spacing: 0.4px; color: #1f3a5f;
+  }
+  #guide .row {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin: 11px 0;
+    text-align: left;
+    font-size: 14px;
+    color: #4a6b8f;
+    letter-spacing: 0.3px;
+    line-height: 1.5;
+  }
+  #guide .row .dot {
+    flex: 0 0 26px; height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #eaf3ff, #cfe2ff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    color: #3b6ea5;
+    font-weight: 600;
+  }
+  #guide .row .txt em {
+    font-style: normal;
+    color: #8aa4bf;
+    font-size: 12.5px;
+  }
+  #guide .start {
+    margin: 22px 0 0;
+    font-size: 12.5px;
+    color: #8aa4bf;
+    letter-spacing: 0.6px;
+    animation: breathe 2s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 1; }
+  }
+
+  /* ---------- 顶部成就弹窗 ---------- */
+  #congrats {
+    position: fixed;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-24px) scale(0.95);
+    z-index: 40;
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.99), rgba(235,246,255,0.99));
+    border-radius: 22px;
+    padding: 16px 32px 16px 24px;
+    box-shadow:
+      0 22px 60px rgba(20, 50, 100, 0.30),
+      0 0 0 1px rgba(120, 160, 210, 0.16) inset,
+      0 0 40px rgba(160, 200, 245, 0.4);
+    font-size: 17px;
+    font-weight: 600;
+    color: #1f3a5f;
+    letter-spacing: 0.6px;
+    opacity: 0; pointer-events: none;
+    transition:
+      opacity 0.65s ease,
+      transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  }
+  #congrats.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  #congrats .c-icon {
+    width: 34px; height: 26px;
+    color: #6ea3d6;
+    flex-shrink: 0;
+  }
+  #congrats .c-text {
+    white-space: nowrap;
+  }
+
+  /* ---------- 科普知识卡片 ---------- */
+  #fact {
+    position: fixed; z-index: 30;
+    left: 50%; bottom: 46px;
+    transform: translateX(-50%) translateY(24px);
+    width: min(420px, calc(100vw - 40px));
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 18px;
+    padding: 20px 22px 16px 24px;
+    box-shadow:
+      0 20px 55px rgba(20, 50, 100, 0.28),
+      0 0 0 1px rgba(120, 160, 210, 0.18) inset;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.45s ease, transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  }
+  #fact.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  #fact .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    color: #3b6ea5;
+    background: linear-gradient(135deg, #eaf3ff, #d5e6ff);
+    border-radius: 6px;
+    padding: 3px 9px;
+    margin-bottom: 10px;
+  }
+  #fact .tag.local {
+    color: #4a7a55;
+    background: linear-gradient(135deg, #eaf7ee, #d6eedd);
+  }
+  #fact h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f3a5f;
+    letter-spacing: 0.3px;
+    line-height: 1.45;
+  }
+  #fact p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.72;
+    color: #4a6b8f;
+    letter-spacing: 0.25px;
+  }
+  #fact .src {
+    display: block;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(140, 175, 215, 0.22);
+    font-size: 11.5px;
+    color: #93abc4;
+    letter-spacing: 0.3px;
+  }
+  #fact .close-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #b0c4d8;
+    letter-spacing: 0.3px;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+</head>
+<body>
+
+<!-- 新手指引 -->
+<div id="guide">
+  <div class="card">
+    <svg class="icon" viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="30" r="12" fill="currentColor"/>
+      <circle cx="32" cy="22" r="14" fill="currentColor"/>
+      <circle cx="46" cy="30" r="12" fill="currentColor"/>
+      <rect x="18" y="30" width="28" height="12" fill="currentColor"/>
+    </svg>
+    <h2>欢迎来到云下花帘</h2>
+    <div class="row">
+      <span class="dot">1</span>
+      <span class="txt">触摸滑动 · 推动花帘<br><em>花在碰撞中会逐渐凝结成水珠，滴落消失，云朵自动补充</em></span>
+    </div>
+    <div class="row">
+      <span class="dot">2</span>
+      <span class="txt">点击花朵 · 认识一朵云<br><em>点击空白处可收起知识卡片</em></span>
+    </div>
+    <div class="row">
+      <span class="dot">3</span>
+      <span class="txt">长按花朵下拉 · 切换昼夜</span>
+    </div>
+    <p class="start">轻触任意处开始</p>
+  </div>
+</div>
+
+<!-- 顶部成就弹窗 -->
+<div id="congrats">
+  <svg class="c-icon" viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="18" cy="30" r="12" fill="currentColor"/>
+    <circle cx="32" cy="22" r="14" fill="currentColor"/>
+    <circle cx="46" cy="30" r="12" fill="currentColor"/>
+    <rect x="18" y="30" width="28" height="12" fill="currentColor"/>
+  </svg>
+  <span class="c-text">恭喜你，了解一朵云</span>
+</div>
+
+<!-- 科普知识卡片 -->
+<div id="fact">
+  <span class="tag" id="factTag">世界气象组织</span>
+  <h3 id="factTitle"></h3>
+  <p id="factBody"></p>
+  <span class="src" id="factSrc"></span>
+  <span class="close-hint">点击空白处可收起 · 7 秒后自动消失</span>
+</div>
+
+<script>
+/* ============================================================
+   新手指引 —— 事件绑定在 DOM 层，完全绕开 p5
+   ============================================================ */
+const GUIDE_KEY = 'flowerCurtain_guide_v7';
+
+function hasSeenGuide() {
+  try { return localStorage.getItem(GUIDE_KEY) === '1'; }
+  catch (e) { return false; }
+}
+function markGuideSeen() {
+  try { localStorage.setItem(GUIDE_KEY, '1'); } catch (e) {}
+}
+window.resetGuide = function () {
+  try { localStorage.removeItem(GUIDE_KEY); } catch (e) {}
+  location.reload();
+};
+
+const guideEl = document.getElementById('guide');
+
+/* 关闭指引 —— 同时记录时间戳，短暂屏蔽 canvas 手势 */
+let guideCloseTime = 0;
+function dismissGuide() {
+  if (!guideEl.classList.contains('show')) return;
+  guideEl.classList.remove('show');
+  markGuideSeen();
+  guideCloseTime = Date.now();
+}
+
+/* 用 pointerdown 统一处理鼠标 / 触屏 / 触控笔
+   - passive: false  让 preventDefault 生效
+   - stopPropagation 阻止 p5 的 window 监听抢到事件
+   - 兼容旧浏览器的 touchstart 兜底 */
+function onGuideDown(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  dismissGuide();
+}
+guideEl.addEventListener('pointerdown', onGuideDown, { passive: false });
+/* 兜底：某些旧 Android 不支持 pointerdown */
+guideEl.addEventListener('touchstart', onGuideDown, { passive: false });
+guideEl.addEventListener('mousedown',  onGuideDown);
+
+/* 首次打开 → 显示指引 */
+function maybeShowGuide() {
+  if (!hasSeenGuide()) {
+    setTimeout(() => guideEl.classList.add('show'), 700);
+  }
+}
+
+/* ============================================================
+   云科普知识库
+   ============================================================ */
+const CLOUD_FACTS = [
+  { tag: '世界气象组织', title: '全球公认的云只有十“属”', body: '《国际云图集》目前承认 10 个基本云属，按生成高度和大致形态来定义。它们是：卷云、卷积云、卷层云、高积云、高层云、雨层云、层积云、层云、积云、积雨云。每个观测到的云都属于且只属于其中一个云属。', src: '来源：WMO《国际云图集》' },
+  { tag: '世界气象组织', title: '云的高度按“族”划分', body: '高云族云底通常高于约 5000 米（16500 英尺）；中云族云底一般在 2000 至 7000 米（6500 至 23000 英尺）之间；低云族云底最高不超过 2000 米（6500 英尺）。纬度不同，同一云族的实际高度会有所差异。', src: '来源：WMO / 中国气象局' },
+  { tag: '世界气象组织', title: '云的名字里藏着拉丁语', body: 'Stratus / strato 意为“层状、平滑”；Cumulus / cumulo 意为“堆积、蓬松”；Cirrus / cirro 意为“羽毛、丝缕”；Nimbus / nimbo 意为“含雨”；Alto 表示中空。把这几个词缀组合起来，就能读出云的基本性格。', src: '来源：WMO / 中国气象局' },
+  { tag: '中国气象局', title: '中国的云分三族、十属、二十九类', body: '按云的外形特征、结构特点和云底高度，气象工作者把云分为三族、十属、二十九类。三族即低云、中云、高云：低云距地面约 600 至 2000 米，中云约 2000 至 4500 米，高云约 4500 至 10000 米。大多数云都出现在对流层中。', src: '来源：中国气象局《云中玄机何人识》' },
+  { tag: '中国气象局', title: '云形成的两个基本条件', body: '一是水汽达到过饱和，二是要有凝结核。大气中不缺少凝结核，关键在过饱和：要么温度不变而增加水汽，要么水汽不变而降温冷却。降温冷却有三种途径——绝热上升冷却、混合冷却、辐射冷却。', src: '来源：中国气象局《千姿百态的云何以形成？》' },
+  { tag: '中国气象局', title: '凝结核是云成形的“骨架”', body: '如果空气中没有任何杂质，水汽分子相互之间的粘合度非常小，好不容易聚在一起又会被分离；即使聚成小水滴，也因太小而迅速蒸发。大气中的尘埃、盐粒、烟粒等微粒充当凝结核，让大量水汽得以依附、团聚，“化零为整”形成云。', src: '来源：中国气象局《云是怎么形成的》' },
+  { tag: '中国气象局', title: '0℃是一条分界线', body: '水汽在上升过程中，若大气温度高于 0℃，多余的水汽凝结成小水滴；若温度低于 0℃，多余的水汽被凝华成小冰晶。小水滴和小冰晶逐渐增多、相聚到一定数量，就形成肉眼可见的云。', src: '来源：中国气象局《云是怎么形成的》' },
+  { tag: '中国气象局', title: '观云可以识天', body: '天空的薄云往往是天气晴朗的象征；低而厚密的云层常常是阴雨风雪的预兆。层云指示较为稳定的大系统天气，降雨一般连绵不绝；积云则代表中小尺度天气系统，可能出现短时强降雨甚至冰雹。积云若高度大于宽度，即为浓积云，进一步发展就可能成为积雨云。', src: '来源：中国气象局《云中玄机何人识》' },
+  { tag: '中国气象局', title: '积雨云：云中的“巨无霸”', body: '积雨云云体臃肿庞大，云底高度一般约在 400 至 1000 米，云顶可达到对流层顶（8000 至 12000 米）。在潮湿地区，它出现的高度通常比干燥地区低近一半；冬季寒冷地区约 4500 米，夏季温暖地区约 18000 米。', src: '来源：中国天气网 / 中国气象局' },
+  { tag: '中国气象局', title: '一朵云有多重？', body: '据位于美国科罗拉多州的国家大气研究中心计算，平均而言，一朵云重约 600 吨，相当于 100 头大象。而伴随着暴雨的大型积雨云，可以重达 20 万头大象。它们之所以不掉下来，是因为水滴足够小，被上升气流托在空中。', src: '来源：中国气象数据网（国家气象信息中心）' },
+  { tag: '中国气象局', title: '云里的水，只是大气水的零头', body: '据测算，全世界空中的水汽大约有 13 万亿吨。而我们眼睛看到的云，总含水量仅占看不见的水汽含水量的约 1/140。全球大气云中的含水量大约是 900 亿吨，与大气中气态水量比，仅占 0.7%。', src: '来源：中国气象局《漫话空中水》《空中水资源开发利用的原理》' },
+  { tag: '中国气象局', title: '云量的三个等级', body: '强度以云遮蔽天空的成数为度量，分三个等级：天空无云或云量小于天空面积的 1/10，为晴；有 4 至 7 成的中、低云，或有 6 至 10 成的高云，为多云；中低云总云量有 8 成以上，为阴。', src: '来源：中国气象局《云》' },
+  { tag: '世界气象组织', title: '云覆盖了地球近一半的天空', body: '全球总云量平均约为 54%（陆地）至 68%（海洋）。云在平均地球反照率中所起的作用约占三分之二。典型反射率：卷云约 36%，层积云和积云约 60% 至 80%。', src: '来源：WMO《国际云图集》相关气候研究' },
+  { tag: '世界气象组织', title: '卷云长期覆盖地球约三成表面', body: '卷云位于对流层中上层和平流层下层，通常距离地面 6 千米以上。据统计，卷云永久覆盖约 30% 的地球表面；视地理位置不同，卷云出现的时间占比在 5% 至 65% 之间。', src: '来源：WMO / 大气辐射研究' },
+  { tag: '世界气象组织', title: '云分类体系已有两百多年历史', body: '现行国际通用的拉丁语云分类体系可追溯到 1803 年，业余气象学家卢克·霍华德（Luke Howard）发表了《论云的变形》。他提出三个基本云属：卷云（纤维状）、积云（堆积状）、层云（片状），并引入了 nimbus（雨云）一词。现代十属分类在 1880 年前后成型。', src: '来源：WMO《国际云图集》' },
+  { tag: '世界气象组织', title: '新加入的“滚轴云”和“糙面云”', body: '《国际云图集》新增了物种 Volutus（滚轴云），拉丁语意为“滚动”。还收录了 Asperitas（糙面云），意为“粗糙、不平”，外观像倒扣的波涛海面，近年来广受公众关注，被列为“附属特征”。此外还有 Homogenitus（人造云），如飞机尾迹。', src: '来源：WMO《国际云图集》/ 中国气象局' },
+  { tag: '中国气象局', title: '2014 年起云观测走向自动化', body: '在 2014 年之前，我国对云高、云量、云状的观测都属于人工目测项目。由于人工观测存在主观性强、不能定量、观测不连续等缺点，自 2014 年 1 月 1 日起，中国气象局取消了云状观测和 13 种天气现象观测，部分台站实现云高、能见度等自动观测。', src: '来源：中国气象局《云中玄机何人识》' },
+  { tag: '中国气象局', title: '积云（Cumulus）· 晴天里的棉花糖', body: '积云是顶部呈山丘状、圆弧形或塔形垂直向上发展的云块，云底较低且平坦，云体庞大，云块之间多不相连。积云上部像西兰花，接受太阳光反射后云体亮白，但当太阳在云层后时则云体阴暗。在湿度大的地区，积云一般离地 600-1200 米；在干燥地区，最多可达 3000 米。浓积云产生的短时阵雨除外，积云一般无降水。', src: '来源：中国天气网《一张图看懂云的十大分类》' },
+  { tag: '中国气象局', title: '层积云（Stratocumulus）· 低而蓬松的云层', body: '层积云是一种低层的云，由片状、团状或条状的云组成，外形看起来像积云。有时分散的云块会融合成一整片连续的云层，有时云块间有缝隙，看起来就像是“棉花糖机忘记了关闭开关”。云底一般有很清晰的轮廓，颜色从亮白至蓝灰。典型高度 600-2000 米。偶尔下小雨、小雪或雪丸。', src: '来源：中国天气网《层积云》专题' },
+  { tag: '中国气象局', title: '层云（Stratus）· 低厚而朦胧的云雾毛毯', body: '层云是一种平坦、朦胧、灰色的云，外形没有什么特色，就像一层阴暗的面纱笼罩天空。层云的边界有弥漫扩散感，色调从灰色到白色，云层越薄色调越白。在 10 种云属中，层云的形成高度最低（0-2000 米），有时会出现在地面上，即我们所称的雾或霾。', src: '来源：中国天气网《层云》专题' },
+  { tag: '世界气象组织', title: '积雨云（Cumulonimbus）· 云中的“黑暗武士”', body: '积雨云是对流云发展的极盛阶段，云体浓厚庞大，云底混乱，颜色阴暗，有滚轴或悬球状。云底通常在 2000 米以下，云顶常可达 10 千米以上。发展成熟时产生“铁砧”状云顶。云内垂直气流常超过 15 m/s，湍流严重，常伴有暴雨、冰雹、闪电和狂风。', src: '来源：WMO《国际云图集》/ 中国气象局' },
+  { tag: '中国气象局', title: '高层云（Altostratus）· 高度中等的“无趣的云”', body: '高层云是一种高度中等的云层，典型的高层云是平凡无奇的云。云体呈均匀的灰色或蓝灰色，看起来像一层厚厚的幕布。典型高度 2000-7000 米，中纬度地区更常见。厚的云层中可产生降水。', src: '来源：中国天气网《高层云》专题' },
+  { tag: '中国气象局', title: '高积云（Altocumulus）· 天空中的面包卷', body: '高积云是由许多小云块组成的一整层或一整片云，呈圆块状、卷轴状或者杏仁/透镜状，颜色为白色或灰色。云块较小，轮廓分明，常呈椭圆形。典型高度 2000-5500 米（夏季在中国南方有时可高达 8000 米左右），属中云族。', src: '来源：中国天气网《高积云》专题' },
+  { tag: '中国气象局', title: '雨层云（Nimbostratus）· 浓厚的灰色云毯', body: '雨层云没有积雨云特有的高耸云塔，云体很厚，颜色阴暗，形状不规则，却可以横向延展，覆盖数千千米的天空。典型高度 600-5500 米。积雨云是“急性子”，下猛烈的暴风雨；雨层云是“慢性子”，淅淅沥沥地下好几个小时。', src: '来源：中国天气网《雨层云》专题' },
+  { tag: '中国气象局', title: '卷云（Cirrus）· 冰晶降落时形成的精致条纹', body: '卷云是 10 种云属中高度最高的云，完全由冰晶组成，云底高度 4500-10000 米，有时可高达 17000 米。降落的冰晶形成了精致的细条纹状、斑块状或宽带状。卷云的学名 Cirrus 源自拉丁文，意为“一缕头发”。卷云无降水。', src: '来源：中国天气网《卷云》专题' },
+  { tag: '中国气象局', title: '卷层云（Cirrostratus）· 一层高高的乳白色云纱', body: '卷层云是指白色透明的云幔，有丝缕状结构或呈均匀薄幕状，可以部分或全部遮蔽天穹，常伴有晕（日晕或月晕）。卷层云范围大，可达几百到几千公里。云底高度约 5000 米以上，属高云族。', src: '来源：中国天气网《卷层云》专题' },
+  { tag: '中国气象局', title: '卷积云（Cirrocumulus）· 俗称“鱼鳞云”', body: '卷积云是 10 种云属中最难捕捉到踪影的一种云。它形成在约 5000-14000 米的高空，云块看起来极其微小，仿佛小盐粒，排列整齐而又紧密，好似鱼鳞，俗称“鱼鳞云”。卷积云形成后只能维持几分钟到一个多小时。', src: '来源：中国天气网《卷积云》专题' },
+];
+
+/* ============================================================
+   知识卡片
+   ============================================================ */
+let factIndex = -1, factTimer = null, factVisible = false;
+
+function showRandomFact() {
+  let i;
+  do { i = Math.floor(Math.random() * CLOUD_FACTS.length); }
+  while (i === factIndex && CLOUD_FACTS.length > 1);
+  factIndex = i;
+
+  const f = CLOUD_FACTS[i];
+  const card = document.getElementById('fact');
+  const tag  = document.getElementById('factTag');
+
+  tag.textContent = f.tag;
+  tag.className = f.tag === '中国气象局' ? 'tag local' : 'tag';
+  document.getElementById('factTitle').textContent = f.title;
+  document.getElementById('factBody').textContent  = f.body;
+  document.getElementById('factSrc').textContent   = f.src;
+
+  card.classList.add('show');
+  factVisible = true;
+  clearTimeout(factTimer);
+  factTimer = setTimeout(hideFact, 7000);
+}
+function hideFact() {
+  if (!factVisible) return;
+  factVisible = false;
+  document.getElementById('fact').classList.remove('show');
+  clearTimeout(factTimer);
+}
+function isOverFactCard() {
+  if (!factVisible) return false;
+  const r = document.getElementById('fact').getBoundingClientRect();
+  return mouseX >= r.left && mouseX <= r.right &&
+         mouseY >= r.top  && mouseY <= r.bottom;
+}
+
+/* ============================================================
+   顶部成就弹窗 · 累计拨动 10 秒触发，持续 6 秒
+   ============================================================ */
+let stirringTime   = 0;
+let congratsShown  = false;
+let congratsTimer  = null;
+const STIR_THRESHOLD = 10;
+const CONGRATS_DURATION = 6000;
+
+function showCongrats() {
+  const el = document.getElementById('congrats');
+  if (!el) return;
+  el.classList.add('show');
+  clearTimeout(congratsTimer);
+  congratsTimer = setTimeout(() => el.classList.remove('show'), CONGRATS_DURATION);
+}
+
+function checkStirring() {
+  if (congratsShown) return;
+  if (mouseX <= 0 || mouseX >= width || mouseY <= 0 || mouseY >= height) return;
+  if (mouseY < cloudY + 80) return;
+
+  let stirring = false;
+  const R2 = PHYS.mouseRadius * PHYS.mouseRadius;
+  for (const f of flowers) {
+    if (f.state !== 'swinging') continue;
+    const tip = f.nodes[f.nodes.length - 1];
+    const dx = tip.x - mouseX;
+    const dy = tip.y - mouseY;
+    if (dx * dx + dy * dy < R2) { stirring = true; break; }
+  }
+
+  if (stirring) {
+    stirringTime += deltaTime / 1000;
+    if (stirringTime >= STIR_THRESHOLD) {
+      congratsShown = true;
+      showCongrats();
+    }
+  }
+}
+
+/* ============================================================
+   物理参数
+   ============================================================ */
+const PHYS = {
+  force:           20,
+  mass:            1.0,
+  pixelsPerMeter:  60,
+  fps:             60,
+
+  damping:         0.986,
+  windStrength:    0.11,
+  mouseRadius:     110,
+  mouseForce:      0.95,
+  collisionRadius: 7,
+  collisionPush:   0.35,
+  fallAccel:       0.85,
+
+  ropeIterations:  8,
+  ropeStiffness:   0.98,
+  ropeDamping:     0.985,
+
+  moisturePerHit:  0.028,
+  moistureDecay:   0.0022,
+  dropletAccel:    0.68,
+  dropletDrag:     0.992,
+};
+PHYS.gravity = (PHYS.force / PHYS.mass) * PHYS.pixelsPerMeter / (PHYS.fps * PHYS.fps);
+
+const CLOUD_OFFSET_CM = 10;
+const CM_TO_PX = PHYS.pixelsPerMeter / 100;
+
+/* ============================================================
+   全局状态
+   ============================================================ */
+let flowers = [];
+let stars = [];
+let waterColor;
+
+let cloudY = 0;
+let cloudScale = 1;
+
+let nightAmount = 0, nightTarget = 0;
+
+let dragTarget = null, dragStartY = 0, isDragging = false;
+const DRAG_THRESHOLD = 50;
+
+let stemGradient = null;
+const grid = new Map();
+const CELL_SIZE = 14;
+
+/* ============================================================
+   初始化
+   ============================================================ */
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
+  waterColor = color(150, 205, 245);
+  rebuild();
+  maybeShowGuide();
+}
+
+function rebuild() {
+  cloudY = height * 0.13 + CLOUD_OFFSET_CM * CM_TO_PX;
+  cloudScale = constrain(width / 800, 0.7, 1.6);
+  stemGradient = null;
+
+  flowers = [];
+  const count = constrain(Math.floor(width * height / 2200), 250, 600);
+  const anchorRange = 140 * cloudScale;
+  const anchorY = cloudY + 50 * cloudScale;
+
+  for (let i = 0; i < count; i++) {
+    const ax = width / 2 + random(-anchorRange, anchorRange);
+    const ay = anchorY + random(-6, 6) * cloudScale;
+    const len = random(60, height * 0.7);
+    const delay = random(0, 1700);
+    flowers.push(new Flower(ax, ay, len, delay));
+  }
+
+  stars = [];
+  const starCount = constrain(Math.floor(width * height / 9000), 90, 260);
+  for (let i = 0; i < starCount; i++) {
+    stars.push({
+      x: random(width), y: random(height * 0.92),
+      size: random(0.8, 2.4), phase: random(TWO_PI),
+      speed: random(0.012, 0.048),
+    });
+  }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  rebuild();
+}
+
+/* ============================================================
+   主循环
+   ============================================================ */
+function draw() {
+  nightAmount = lerp(nightAmount, nightTarget, 0.045);
+
+  background(
+    lerp(135, 35, nightAmount),
+    lerp(206, 55, nightAmount),
+    lerp(235, 100, nightAmount)
+  );
+
+  drawStars();
+  drawCloudGlow();
+
+  for (const f of flowers) f.update();
+
+  for (let i = 0; i < PHYS.ropeIterations; i++) {
+    for (const f of flowers) f.solveRope();
+    resolveCollisions();
+  }
+
+  drawStems();
+  drawFlowers();
+  drawCloud(width / 2, cloudY);
+
+  checkStirring();
+}
+
+/* ============================================================
+   星星 / 柔光
+   ============================================================ */
+function drawStars() {
+  if (nightAmount < 0.02) return;
+  noStroke();
+  for (const s of stars) {
+    const twinkle = 0.5 + 0.5 * Math.sin(frameCount * s.speed + s.phase);
+    const a = nightAmount * (0.25 + twinkle * 0.75) * 255;
+    fill(255, 252, 230, a);
+    ellipse(s.x, s.y, s.size, s.size);
+  }
+}
+
+function drawCloudGlow() {
+  if (nightAmount < 0.02) return;
+  const x = width / 2, y = cloudY;
+  const r = Math.max(width * 0.36, 380 * cloudScale);
+  const ctx = drawingContext;
+
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+  grad.addColorStop(0.00, `rgba(180, 210, 255, ${0.38 * nightAmount})`);
+  grad.addColorStop(0.45, `rgba(150, 185, 245, ${0.16 * nightAmount})`);
+  grad.addColorStop(1.00, 'rgba(150, 185, 245, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+/* ============================================================
+   绳子
+   ============================================================ */
+function createStemGradient() {
+  const y0 = cloudY + 30 * cloudScale;
+  const y1 = cloudY + 210 * cloudScale;
+  const g = drawingContext.createLinearGradient(0, y0, 0, y1);
+  g.addColorStop(0.00, 'rgba(255, 255, 255, 0)');
+  g.addColorStop(0.35, 'rgba(255, 255, 255, 0.18)');
+  g.addColorStop(0.70, 'rgba(255, 255, 255, 0.42)');
+  g.addColorStop(1.00, 'rgba(255, 255, 255, 0.55)');
+  return g;
+}
+
+function drawStems() {
+  if (!stemGradient) stemGradient = createStemGradient();
+  const ctx = drawingContext;
+  ctx.save();
+  ctx.strokeStyle = stemGradient;
+  ctx.lineWidth = 1.05;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (const f of flowers) {
+    if (f.state === 'waiting' || f.state === 'droplet') continue;
+    const nodes = f.nodes;
+    ctx.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < nodes.length; i++) {
+      ctx.lineTo(nodes[i].x, nodes[i].y);
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ============================================================
+   花朵 + 水滴
+   ============================================================ */
+function drawFlowers() {
+  const ctx = drawingContext;
+  noStroke();
+
+  for (const f of flowers) {
+    if (f.state === 'waiting') continue;
+
+    if (f.state === 'droplet') {
+      drawDroplet(f);
+      continue;
+    }
+
+    const tip = f.nodes[f.nodes.length - 1];
+    const wetColor = lerpColor(f.baseColor, waterColor, f.moisture);
+
+    if (f === dragTarget && isDragging) {
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = 'rgba(255, 245, 200, 1)';
+    } else if (f.moisture > 0.55) {
+      const pulse = f.moisture > 0.85
+        ? 0.5 + 0.5 * Math.sin(frameCount * 0.7)
+        : 1.0;
+      ctx.shadowBlur = 14 * pulse;
+      ctx.shadowColor = `rgba(160, 210, 255, ${0.75 * pulse})`;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
+    const wetSize = f.displaySize * (1 + f.moisture * 0.5);
+    fill(wetColor);
+    ellipse(tip.x, tip.y, wetSize, wetSize);
+
+    if (f.moisture > 0.4) {
+      ctx.shadowBlur = 0;
+      fill(255, 255, 255, 90 * f.moisture);
+      const hx = tip.x - wetSize * 0.22;
+      const hy = tip.y - wetSize * 0.24;
+      ellipse(hx, hy, wetSize * 0.24, wetSize * 0.22);
+    }
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawDroplet(f) {
+  const ctx = drawingContext;
+  noStroke();
+
+  const speed = Math.abs(f.dropletVY) + Math.abs(f.dropletVX) * 0.5;
+  const stretch = constrain(speed * 0.045, 0, 0.55);
+  const base = f.size * 3.0;
+  const w = base * (1 - stretch * 0.35);
+  const h = base * (1 + stretch);
+
+  ctx.shadowBlur = 18;
+  ctx.shadowColor = 'rgba(160, 210, 255, 0.85)';
+
+  fill(170, 215, 245, 235);
+  ellipse(f.dx, f.dy, w, h);
+
+  ctx.shadowBlur = 0;
+  fill(255, 255, 255, 200);
+  ellipse(f.dx - w * 0.18, f.dy - h * 0.22, w * 0.28, h * 0.24);
+}
+
+/* ============================================================
+   云朵
+   ============================================================ */
+function drawCloud(x, y) {
+  noStroke();
+  const s = cloudScale;
+
+  const r = lerp(255, 218, nightAmount);
+  const g = lerp(255, 232, nightAmount);
+  const b = lerp(255, 255, nightAmount);
+
+  const ctx = drawingContext;
+  if (nightAmount > 0.02) {
+    ctx.shadowBlur = 45 * nightAmount;
+    ctx.shadowColor = `rgba(170, 205, 255, ${0.85 * nightAmount})`;
+  } else {
+    ctx.shadowBlur = 0;
+  }
+
+  fill(r, g, b, 55);
+  ellipse(x,             y + 25 * s, 470 * s, 180 * s);
+  ellipse(x - 170 * s,   y + 20 * s, 268 * s, 158 * s);
+  ellipse(x + 170 * s,   y + 20 * s, 268 * s, 158 * s);
+  ellipse(x - 82  * s,   y - 28 * s, 248 * s, 170 * s);
+  ellipse(x + 82  * s,   y - 28 * s, 248 * s, 170 * s);
+
+  fill(r, g, b, 150);
+  ellipse(x,             y + 25 * s, 418 * s, 152 * s);
+  ellipse(x - 153 * s,   y + 20 * s, 236 * s, 137 * s);
+  ellipse(x + 153 * s,   y + 20 * s, 236 * s, 137 * s);
+  ellipse(x - 75  * s,   y - 26 * s, 216 * s, 148 * s);
+  ellipse(x + 75  * s,   y - 26 * s, 216 * s, 148 * s);
+
+  fill(r, g, b, 248);
+  ellipse(x,             y + 25 * s, 380 * s, 130 * s);
+  ellipse(x - 145 * s,   y + 20 * s, 210 * s, 120 * s);
+  ellipse(x + 145 * s,   y + 20 * s, 210 * s, 120 * s);
+  ellipse(x - 70  * s,   y - 25 * s, 190 * s, 130 * s);
+  ellipse(x + 70  * s,   y - 25 * s, 190 * s, 130 * s);
+
+  ctx.shadowBlur = 0;
+}
+
+/* ============================================================
+   碰撞 + 湿度累积
+   ============================================================ */
+function resolveCollisions() {
+  grid.clear();
+
+  for (const f of flowers) {
+    if (f.state !== 'swinging') continue;
+    const tip = f.nodes[f.nodes.length - 1];
+    const cx = Math.floor(tip.x / CELL_SIZE);
+    const cy = Math.floor(tip.y / CELL_SIZE);
+    f.cx = cx; f.cy = cy;
+    const key = cx * 10000 + cy;
+    let bucket = grid.get(key);
+    if (!bucket) { bucket = []; grid.set(key, bucket); }
+    bucket.push(f);
+  }
+
+  const r = PHYS.collisionRadius;
+  const r2 = r * r;
+  const k = PHYS.collisionPush * 0.5;
+
+  for (const f of flowers) {
+    if (f.state !== 'swinging') continue;
+    const fTip = f.nodes[f.nodes.length - 1];
+    const fDragged = (f === dragTarget && isDragging);
+
+    for (let ox = -1; ox <= 1; ox++) {
+      for (let oy = -1; oy <= 1; oy++) {
+        const bucket = grid.get((f.cx + ox) * 10000 + (f.cy + oy));
+        if (!bucket) continue;
+        for (const g of bucket) {
+          if (g === f) continue;
+          const gTip = g.nodes[g.nodes.length - 1];
+          const dx = gTip.x - fTip.x;
+          const dy = gTip.y - fTip.y;
+          const d2 = dx * dx + dy * dy;
+
+          if (d2 < r2 && d2 > 0.0001) {
+            const d = Math.sqrt(d2);
+            const overlap = (r - d) / r;
+            const corr = (overlap / d) * k * r;
+            const px = dx * corr;
+            const py = dy * corr;
+            fTip.x -= px; fTip.y -= py;
+            gTip.x += px; gTip.y += py;
+
+            const gDragged = (g === dragTarget && isDragging);
+            const amount = overlap * PHYS.moisturePerHit;
+            if (!fDragged) f.moisture += amount;
+            if (!gDragged) g.moisture += amount;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* ============================================================
+   交互 —— 手机优先
+   ──────────────────────────────────────────────────────────
+   关键修复：
+     1. 所有 canvas 事件首先检查"指引是否开着"
+     2. 若指引开着 / 刚关闭 → 直接 return false，避免误触发
+     3. 指引的关闭由 DOM 层的 pointerdown 独立处理
+   ============================================================ */
+let pressTarget = null, pressStartX = 0, pressStartY = 0, pressMoved = false;
+
+function isGuideOpen() {
+  return guideEl.classList.contains('show');
+}
+function isGuideJustClosed() {
+  return Date.now() - guideCloseTime < 350;
+}
+
+function resetGestures() {
+  dragTarget = null; pressTarget = null;
+  isDragging = false; pressMoved = false;
+}
+
+function mousePressed() {
+  if (isGuideOpen() || isGuideJustClosed()) { resetGestures(); return; }
+  if (isOverFactCard()) { resetGestures(); return; }
+
+  let best = null, bestD = 40;
+  for (const f of flowers) {
+    if (f.state !== 'swinging') continue;
+    const tip = f.nodes[f.nodes.length - 1];
+    if (tip.y < cloudY + 160) continue;
+    const d = dist(mouseX, mouseY, tip.x, tip.y);
+    if (d < bestD) { bestD = d; best = f; }
+  }
+
+  pressTarget = best;
+  pressStartX = mouseX; pressStartY = mouseY;
+  pressMoved = false;
+  dragTarget = best;
+  dragStartY = mouseY;
+  isDragging = false;
+}
+
+function mouseDragged() {
+  if (isGuideOpen() || isGuideJustClosed()) return;
+  if (!pressTarget) return;
+
+  const moved = Math.hypot(mouseX - pressStartX, mouseY - pressStartY);
+  if (moved > 8) pressMoved = true;
+
+  const dy = mouseY - dragStartY;
+  if (!isDragging && pressMoved && dy > DRAG_THRESHOLD) {
+    isDragging = true;
+  }
+
+  if (isDragging && dragTarget) {
+    const tip = dragTarget.nodes[dragTarget.nodes.length - 1];
+    tip.x = constrain(mouseX, 10, width - 10);
+    tip.y = constrain(mouseY, 10, height - 10);
+    tip.px = tip.x; tip.py = tip.y;
+
+    const dx = tip.x - dragTarget.ax;
+    const dyy = tip.y - dragTarget.ay;
+    dragTarget.currentLen = Math.sqrt(dx * dx + dyy * dyy);
+  }
+}
+
+function mouseReleased() {
+  if (isGuideOpen() || isGuideJustClosed()) { resetGestures(); return; }
+  if (isOverFactCard()) { resetGestures(); return; }
+
+  if (isDragging && dragTarget) {
+    nightTarget = nightTarget > 0.5 ? 0 : 1;
+  } else if (pressTarget && !pressMoved) {
+    showRandomFact();
+  } else if (factVisible && !pressTarget && !pressMoved) {
+    hideFact();
+  }
+  resetGestures();
+}
+
+/* p5 事件 —— 全部先判断指引状态，避免吞掉 DOM 事件 */
+function touchStarted() {
+  if (isGuideOpen() || isGuideJustClosed()) return false;
+  mousePressed();
+  return false;
+}
+function touchMoved() {
+  if (isGuideOpen() || isGuideJustClosed()) return false;
+  mouseDragged();
+  return false;
+}
+function touchEnded() {
+  if (isGuideOpen() || isGuideJustClosed()) return false;
+  mouseReleased();
+  return false;
+}
+
+/* ============================================================
+   花朵 · 真实绳索 + 凝结成水 + 云朵补充
+   ============================================================ */
+class Flower {
+  constructor(ax, ay, len, delay) {
+    this.initPosition(ax, ay, len);
+    this.state = 'waiting';
+    this.startAt = delay;
+    this.fallDist = 0;
+    this.fallSpeed = 0;
+
+    this.size = random(4, 9);
+    this.displaySize = this.size;
+
+    this.baseColor = this.pickColor();
+    this.moisture = 0;
+    this.windPhase = random(TWO_PI);
+    this.cx = 0; this.cy = 0;
+
+    this.dx = 0; this.dy = 0;
+    this.dropletVX = 0;
+    this.dropletVY = 0;
+  }
+
+  initPosition(ax, ay, len) {
+    this.ax = ax; this.ay = ay;
+    this.targetLen = len;
+    this.currentLen = len;
+    this.nSeg = constrain(Math.round(len / 110), 3, 7);
+
+    this.nodes = [];
+    for (let i = 0; i <= this.nSeg; i++) {
+      this.nodes.push({ x: ax, y: ay, px: ax, py: ay });
+    }
+  }
+
+  pickColor() {
+    const palette = [
+      [255, 182, 193],
+      [255, 218, 224],
+      [255, 240, 245],
+      [255, 255, 255],
+      [255, 235, 170],
+    ];
+    const c = palette[Math.floor(Math.random() * palette.length)];
+    return color(
+      constrain(c[0] + random(-10, 10), 0, 255),
+      constrain(c[1] + random(-10, 10), 0, 255),
+      constrain(c[2] + random(-10, 10), 0, 255)
+    );
+  }
+
+  update() {
+    const beingDragged = (this === dragTarget && isDragging);
+
+    if (this.state === 'droplet') {
+      this.dropletVY += PHYS.dropletAccel;
+      this.dropletVX *= PHYS.dropletDrag;
+      this.dropletVY *= PHYS.dropletDrag;
+
+      this.dx += this.dropletVX;
+      this.dy += this.dropletVY;
+
+      if (this.dy > height + 80 ||
+          this.dx < -100 || this.dx > width + 100) {
+        this.respawn();
+      }
+      return;
+    }
+
+    if (this.state === 'swinging' && !beingDragged) {
+      this.moisture = Math.max(0, this.moisture - PHYS.moistureDecay);
+    }
+
+    if (this.state === 'swinging' && this.moisture >= 1 && !beingDragged) {
+      this.becomeDroplet();
+      return;
+    }
+
+    const tip = this.nodes[this.nodes.length - 1];
+
+    if (!beingDragged) {
+      this.currentLen = lerp(this.currentLen, this.targetLen, 0.08);
+    }
+
+    const targetSize = beingDragged ? this.size * 2.4 : this.size;
+    this.displaySize = lerp(this.displaySize, targetSize, 0.18);
+
+    if (this.state === 'waiting') {
+      if (millis() < this.startAt) return;
+      this.state = 'falling';
+      this.fallDist = 0;
+      this.fallSpeed = 0;
+      return;
+    }
+
+    if (this.state === 'falling') {
+      this.fallSpeed += PHYS.fallAccel;
+      this.fallDist += this.fallSpeed;
+
+      if (this.fallDist >= this.targetLen) {
+        this.fallDist = this.targetLen;
+        this.state = 'swinging';
+        this.currentLen = this.targetLen;
+      }
+
+      const segLen = this.fallDist / this.nSeg;
+      for (let i = 0; i <= this.nSeg; i++) {
+        const n = this.nodes[i];
+        n.x = this.ax;
+        n.y = this.ay + segLen * i;
+        n.px = n.x;
+        n.py = n.y - this.fallSpeed * 0.5;
+      }
+
+      if (this.state === 'swinging') {
+        tip.py -= this.fallSpeed * 0.75;
+      }
+      return;
+    }
+
+    if (beingDragged) {
+      tip.x = constrain(mouseX, 10, width - 10);
+      tip.y = constrain(mouseY, 10, height - 10);
+      tip.px = tip.x; tip.py = tip.y;
+    }
+
+    for (let i = 1; i < this.nodes.length; i++) {
+      if (beingDragged && i === this.nodes.length - 1) continue;
+      this.integrateNode(this.nodes[i]);
+    }
+  }
+
+  integrateNode(n) {
+    const vx = (n.x - n.px) * PHYS.ropeDamping;
+    const vy = (n.y - n.py) * PHYS.ropeDamping;
+
+    let ax = 0;
+    let ay = PHYS.gravity;
+
+    const t = frameCount * 0.015;
+    const wind = (
+      Math.sin(t + this.windPhase) * 0.7 +
+      Math.sin(t * 1.9 + this.windPhase * 2.1) * 0.3
+    ) * PHYS.windStrength;
+    ax += wind;
+
+    const dx = n.x - mouseX;
+    const dy = n.y - mouseY;
+    const d2 = dx * dx + dy * dy;
+    const R = PHYS.mouseRadius;
+
+    if (d2 < R * R && d2 > 1) {
+      const d = Math.sqrt(d2);
+      const f = (1 - d / R) * PHYS.mouseForce * 0.55;
+      ax += (dx / d) * f;
+      ay += (dy / d) * f;
+    }
+
+    n.px = n.x;
+    n.py = n.y;
+    n.x += vx + ax;
+    n.y += vy + ay;
+  }
+
+  solveRope() {
+    if (this.state !== 'swinging' && this.state !== 'falling') return;
+
+    const nodes = this.nodes;
+    const nSeg = this.nSeg;
+    const segLen = this.currentLen / nSeg;
+    const tipDragged = (this === dragTarget && isDragging);
+    const k = PHYS.ropeStiffness;
+
+    for (let iter = 0; iter < PHYS.ropeIterations; iter++) {
+      nodes[0].x = this.ax;
+      nodes[0].y = this.ay;
+
+      if (tipDragged) {
+        const tip = nodes[nSeg];
+        tip.x = constrain(mouseX, 10, width - 10);
+        tip.y = constrain(mouseY, 10, height - 10);
+      }
+
+      for (let i = 0; i < nSeg; i++) {
+        const a = nodes[i];
+        const b = nodes[i + 1];
+
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+
+        const wA = (i === 0) ? 0 : 1;
+        const wB = (i === nSeg - 1 && tipDragged) ? 0 : 1;
+        const wSum = wA + wB;
+        if (wSum === 0) continue;
+
+        const corr = ((d - segLen) / d) * k;
+        const kA = corr * (wA / wSum);
+        const kB = corr * (wB / wSum);
+
+        a.x += dx * kA; a.y += dy * kA;
+        b.x -= dx * kB; b.y -= dy * kB;
+      }
+    }
+  }
+
+  becomeDroplet() {
+    const tip = this.nodes[this.nodes.length - 1];
+    this.state = 'droplet';
+
+    this.dx = tip.x;
+    this.dy = tip.y;
+
+    const vx = (tip.x - tip.px);
+    const vy = (tip.y - tip.py);
+    this.dropletVX = vx * 1.2 + random(-0.4, 0.4);
+    this.dropletVY = Math.max(vy, 0) + 0.8 + random(0, 0.6);
+
+    if (dragTarget === this) {
+      dragTarget = null;
+      isDragging = false;
+    }
+
+    this.size = random(5, 8);
+  }
+
+  respawn() {
+    const anchorRange = 140 * cloudScale;
+    const ax = width / 2 + random(-anchorRange, anchorRange);
+    const ay = cloudY + 50 * cloudScale + random(-6, 6);
+    const len = random(60, height * 0.7);
+
+    this.initPosition(ax, ay, len);
+
+    this.state = 'waiting';
+    this.startAt = millis() + random(300, 1200);
+    this.fallDist = 0;
+    this.fallSpeed = 0;
+
+    this.moisture = 0;
+    this.size = random(4, 9);
+    this.displaySize = this.size;
+    this.baseColor = this.pickColor();
+    this.windPhase = random(TWO_PI);
+  }
+}
+</script>
+</body>
+</html>
